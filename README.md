@@ -1,176 +1,153 @@
-# OpenNMT-py: Open-Source Neural Machine Translation
-
-[![Build Status](https://travis-ci.org/OpenNMT/OpenNMT-py.svg?branch=master)](https://travis-ci.org/OpenNMT/OpenNMT-py)
-[![Run on FH](https://img.shields.io/badge/Run%20on-FloydHub-blue.svg)](https://floydhub.com/run?template=https://github.com/OpenNMT/OpenNMT-py)
-
-This is a [PyTorch](https://github.com/pytorch/pytorch)
-port of [OpenNMT](https://github.com/OpenNMT/OpenNMT),
-an open-source (MIT) neural machine translation system. It is designed to be research friendly to try out new ideas in translation, summary, image-to-text, morphology, and many other domains. Some companies have proven the code to be production ready.
-
-We love contributions. Please consult the Issues page for any [Contributions Welcome](https://github.com/OpenNMT/OpenNMT-py/issues?q=is%3Aissue+is%3Aopen+label%3A%22contributions+welcome%22) tagged post. 
-
-<center style="padding: 40px"><img width="70%" src="http://opennmt.github.io/simple-attn.png" /></center>
-
-Before raising an issue, make sure you read the requirements and the documentation examples.
-
-Unless there is a bug, please use the [Forum](http://forum.opennmt.net) or [Gitter](https://gitter.im/OpenNMT/OpenNMT-py) to ask questions.
+# Enzymatic Transformer
 
 
-Table of Contents
-=================
-  * [Full Documentation](http://opennmt.net/OpenNMT-py/)
-  * [Requirements](#requirements)
-  * [Features](#features)
-  * [Quickstart](#quickstart)
-  * [Run on FloydHub](#run-on-floydhub)
-  * [Acknowledgements](#acknowledgements)
-  * [Citation](#citation)
+This repo complements the "[Predicting Enzymatic Reactions with a Molecular Transformer](https://chemrxiv.org/articles/preprint/Predicting_Enzymatic_Reactions_with_a_Molecular_Transformer/13161359/1)" publication
 
 ## Requirements
 
-Install `OpenNMT-py` from `pip`:
-```bash
-pip install OpenNMT-py
-```
+### Specific versions used:
+- Python: 3.6.10
+- Torch: 1.5.1
+- TorchText: 0.6.1
+- OpenNMT: 1.1.1
+- RDKit: 2017.09.1
 
-or from the sources:
-```bash
-git clone https://github.com/OpenNMT/OpenNMT-py.git
+### Conda Environment Setup
+
+```python
+conda create -n enztrans_test python=3.6
+conda activate enztrans_test
+conda install -c rdkit rdkit=2017.09.1 -y
+conda install -c pytorch pytorch=1.5.1 -y
+git clone https://github.com/reymond-group/OpenNMT-py.git
 cd OpenNMT-py
-python setup.py install
+git checkout Enzymatic_Transformer
+pip install -e .
 ```
-
-Note: If you have MemoryError in the install try to use `pip` with `--no-cache-dir`.
-
-*(Optional)* some advanced features (e.g. working audio, image or pretrained models) requires extra packages, you can install it with:
-```bash
-pip install -r requirements.opt.txt
-```
-
-Note:
-
-- some features require Python 3.5 and after (eg: Distributed multigpu, entmax)
-- we currently only support PyTorch 1.4
-
-## Features
-
-- [Seq2Seq models (encoder-decoder) with multiple RNN cells (lstm/gru) and attention (dotprod/mlp) types](http://opennmt.net/OpenNMT-py/options/train.html#model-encoder-decoder)
-- [Transformer models](http://opennmt.net/OpenNMT-py/FAQ.html#how-do-i-use-the-transformer-model)
-- [Copy and Coverage Attention](http://opennmt.net/OpenNMT-py/options/train.html#model-attention)
-- [Pretrained Embeddings](http://opennmt.net/OpenNMT-py/FAQ.html#how-do-i-use-pretrained-embeddings-e-g-glove)
-- [Source word features](http://opennmt.net/OpenNMT-py/options/train.html#model-embeddings)
-- [Image-to-text processing](http://opennmt.net/OpenNMT-py/im2text.html)
-- [Speech-to-text processing](http://opennmt.net/OpenNMT-py/speech2text.html)
-- [TensorBoard logging](http://opennmt.net/OpenNMT-py/options/train.html#logging)
-- [Multi-GPU training](http://opennmt.net/OpenNMT-py/FAQ.html##do-you-support-multi-gpu)
-- [Data preprocessing](http://opennmt.net/OpenNMT-py/options/preprocess.html)
-- [Inference (translation) with batching and beam search](http://opennmt.net/OpenNMT-py/options/translate.html)
-- Inference time loss functions.
-- [Conv2Conv convolution model]
-- SRU "RNNs faster than CNN" paper
-- Mixed-precision training with [APEX](https://github.com/NVIDIA/apex), optimized on [Tensor Cores](https://developer.nvidia.com/tensor-cores)
 
 ## Quickstart
 
-[Full Documentation](http://opennmt.net/OpenNMT-py/)
+The training and evaluation was performed using [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py). The full documentation of the OpenNMT can be found [here](https://opennmt.net/OpenNMT-py/).
 
+### Step 1: Tokenization 
 
-### Step 1: Preprocess the data
+The reaction SMILES are tokenized using the tokenization function available from the Molecular Transformer [here](https://github.com/pschwllr/MolecularTransformer)
 
-```bash
-onmt_preprocess -train_src data/src-train.txt -train_tgt data/tgt-train.txt -valid_src data/src-val.txt -valid_tgt data/tgt-val.txt -save_data data/demo
+Enzyme sentences are tokenized using the Hugging Face tokenizers available [here](https://github.com/huggingface/tokenizers/tree/master/bindings/python#build-your-own). The custom tokenizer can be build from a file containing the list of sentences using the following commands:
+
+```python
+from tokenizers import Tokenizer, models, pre_tokenizers, decoders, trainers, processors
+
+# Initialize a tokenizer
+tokenizer2 = Tokenizer(models.BPE())
+
+# Customize pre-tokenization and decoding
+tokenizer2.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=True)
+tokenizer2.decoder = decoders.ByteLevel()
+tokenizer2.post_processor = processors.ByteLevel(trim_offsets=True)
+
+# And then train
+trainer = trainers.BpeTrainer(vocab_size=9000, min_frequency=2, limit_alphabet=55, special_tokens=['ase', 'hydro', 'mono', 'cyclo', 'thermo', 'im'])
+tokenizer2.train(trainer, ["list_of_sentences.txt"])
 ```
 
-We will be working with some example data in `data/` folder.
+Then, sentences of the dataset are tokenized using the following function:
 
-The data consists of parallel source (`src`) and target (`tgt`) data containing one sentence per line with tokens separated by a space:
-
-* `src-train.txt`
-* `tgt-train.txt`
-* `src-val.txt`
-* `tgt-val.txt`
-
-Validation files are required and used to evaluate the convergence of the training. It usually contains no more than 5000 sentences.
-
-
-After running the preprocessing, the following files are generated:
-
-* `demo.train.pt`: serialized PyTorch file containing training data
-* `demo.valid.pt`: serialized PyTorch file containing validation data
-* `demo.vocab.pt`: serialized PyTorch file containing vocabulary data
-
-
-Internally the system never touches the words themselves, but uses these indices.
-
-### Step 2: Train the model
-
-```bash
-onmt_train -data data/demo -save_model demo-model
+```python
+def enzyme_sentence_tokenizer(sentence):
+    '''
+    Tokenize a sentenze, optimized for enzyme-like descriptions & names
+    '''
+    encoded = tokenizer2.encode(sentence)
+    my_list = [item for item in encoded.tokens if 'Ġ' != item]
+    my_list = [item.replace('Ġ', '_') for item in my_list]
+    my_list = ' '.join(my_list)
+    return my_list
 ```
 
-The main train command is quite simple. Minimally it takes a data file
-and a save file.  This will run the default model, which consists of a
-2-layer LSTM with 500 hidden units on both the encoder/decoder.
-If you want to train on GPU, you need to set, as an example:
-`CUDA_VISIBLE_DEVICES=1,3`
-`-world_size 2 -gpu_ranks 0 1` to use (say) GPU 1 and 3 on this node only.
-To know more about distributed training on single or multi nodes, read the FAQ section.
+### Step 2: Preprocess the data
 
-### Step 3: Translate
+```python
+DATASET=data/uspto_dataset
+DATASET_TRANSFER=data/transfer_dataset
 
-```bash
-onmt_translate -model demo-model_acc_XX.XX_ppl_XXX.XX_eX.pt -src data/src-test.txt -output pred.txt -replace_unk -verbose
+preprocess.py -train_ids ENZR ST_sep_aug \
+	-train_src DATADIR/src_train.txt $DATASET_TRANSFER/src-train.txt \
+	-train_tgt DATADIR/tgt_train.txt $DATASET_TRANSFER/tgt-train.txt \
+	-valid_src DATADIR/src_val.txt -valid_tgt $DATASET_TRANSFER/multi_task /tgt_val.txt \
+	-save_data DATADIR/Preprocessed \-src_seq_length 3000 -tgt_seq_length 3000 \
+	-src_vocab_size 3000 -tgt_vocab_size 3000 \-share_vocab -lower
 ```
 
-Now you have a model which you can use to predict on new data. We do this by running beam search. This will output predictions into `pred.txt`.
+### Step 3: Training of the model
 
-!!! note "Note"
-    The predictions are going to be quite terrible, as the demo dataset is small. Try running on some larger datasets! For example you can download millions of parallel sentences for [translation](http://www.statmt.org/wmt16/translation-task.html) or [summarization](https://github.com/harvardnlp/sent-summary).
+The Enzymatic Transformer was trained using the following parameters:
 
-## Alternative: Run on FloydHub
+Multi-task transfer learning:
 
-[![Run on FloydHub](https://static.floydhub.com/button/button.svg)](https://floydhub.com/run?template=https://github.com/OpenNMT/OpenNMT-py)
+```python
+WEIGHT1=1
+WEIGHT2=9
 
-Click this button to open a Workspace on [FloydHub](https://www.floydhub.com/?utm_medium=readme&utm_source=opennmt-py&utm_campaign=jul_2018) for training/testing your code.
+train.py -data DATADIR/Preprocessed \
+	-save_model ENZR_MTL -seed 42 -train_steps 200000 -param_init 0 \
+	-param_init_glorot  -max_generator_batches 32 -batch_size 6144 \
+	-batch_type tokens -normalization tokens -max_grad_norm 0 -accum_count 4 \
+	-optim adam -adam_beta1 0.9 -adam_beta2 0.998 -decay_method noam \
+	-warmup_steps 8000 -learning_rate 4 -label_smoothing 0.0 -layers 4 \
+	-rnn_size 384 -word_vec_size 384 \
+	-encoder_type transformer -decoder_type transformer \
+	-dropout 0.1 -position_encoding -global_attention general \
+	-global_attention_function softmax -self_attn_type scaled-dot \
+	-heads 8 -transformer_ff 2048 \
+	-data_ids ENZR ST_sep_aug -data_weights WEIGHT1 WEIGHT2 \
+	-valid_steps 5000 -valid_batch_size 4 -early_stopping_criteria accuracy \
+```
 
 
-## Pretrained embeddings (e.g. GloVe)
 
-Please see the FAQ: [How to use GloVe pre-trained embeddings in OpenNMT-py](http://opennmt.net/OpenNMT-py/FAQ.html#how-do-i-use-pretrained-embeddings-e-g-glove)
 
-## Pretrained Models
 
-The following pretrained models can be downloaded and used with translate.py.
+### Step 4: Model prediction
 
-http://opennmt.net/Models-py/
 
-## Acknowledgements
+A reaction can be predicted after tokenization using the following command:
 
-OpenNMT-py is run as a collaborative open-source project.
-The original code was written by [Adam Lerer](http://github.com/adamlerer) (NYC) to reproduce OpenNMT-Lua using Pytorch.
+```python
+translate.py -model model_uspto_ENZR_multitask.pt \
+	-src DATASET/src_test.txt \
+	-output predictions.txt \
+	-batch_size 64 -replace_unk -max_length 1000 \
+	-log_probs -beam_size 5 -n_best 5 \
 
-Major contributors are:
-[Sasha Rush](https://github.com/srush) (Cambridge, MA)
-[Vincent Nguyen](https://github.com/vince62s) (Ubiqus)
-[Ben Peters](http://github.com/bpopeters) (Lisbon)
-[Sebastian Gehrmann](https://github.com/sebastianGehrmann) (Harvard NLP)
-[Yuntian Deng](https://github.com/da03) (Harvard NLP)
-[Guillaume Klein](https://github.com/guillaumekln) (Systran)
-[Paul Tardy](https://github.com/pltrdy) (Ubiqus / Lium)
-[François Hernandez](https://github.com/francoishernandez) (Ubiqus)
-[Jianyu Zhan](http://github.com/jianyuzhan) (Shanghai)
-[Dylan Flaute](http://github.com/flauted (University of Dayton)
-and more !
-
-OpenNMT-py belongs to the OpenNMT project along with OpenNMT-Lua and OpenNMT-tf.
+```
 
 ## Citation
 
-[OpenNMT: Neural Machine Translation Toolkit](https://arxiv.org/pdf/1805.11462)
+### Enzymatic Transformer:
 
-[OpenNMT technical report](https://doi.org/10.18653/v1/P17-4012)
-
+```python
+@article{kreutter_predicting_2020,
+	title = {Predicting {Enzymatic} {Reactions} with a {Molecular} {Transformer}},
+	author = {Kreutter, David and Schwaller, Philippe and Reymond, Jean-Louis},
+	url = {/articles/preprint/Predicting_Enzymatic_Reactions_with_a_Molecular_Transformer/13161359/1},
+	doi = {10.26434/chemrxiv.13161359.v1},
+	urldate = {2020-10-30},
+	month = oct,
+	year = {2020},
+	note = {Publisher: ChemRxiv}
+}
 ```
+
+### Original OpenNMT-py:
+
+If you reuse this code please also cite the underlying code framework:
+
+[OpenNMT: Neural Machine Translation Toolkit](https://arxiv.org/pdf/1805.11462.pdf)
+
+[OpenNMT technical report](https://www.aclweb.org/anthology/P17-4012/)
+
+```python
 @inproceedings{opennmt,
   author    = {Guillaume Klein and
                Yoon Kim and
@@ -184,3 +161,4 @@ OpenNMT-py belongs to the OpenNMT project along with OpenNMT-Lua and OpenNMT-tf.
   doi       = {10.18653/v1/P17-4012}
 }
 ```
+
