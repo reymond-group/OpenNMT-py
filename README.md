@@ -14,7 +14,7 @@ This repo complements the "[Predicting Enzymatic Reactions with a Molecular Tran
 
 ### Conda Environment Setup
 
-```python
+```bash
 conda create -n enztrans_test python=3.6
 conda activate enztrans_test
 conda install -c rdkit rdkit=2017.09.1 -y
@@ -67,7 +67,7 @@ def enzyme_sentence_tokenizer(sentence):
 
 ### Step 2: Preprocess the data
 
-```python
+```bash
 DATASET=data/uspto_dataset
 DATASET_TRANSFER=data/transfer_dataset
 
@@ -85,7 +85,7 @@ The Enzymatic Transformer was trained using the following parameters:
 
 Multi-task transfer learning:
 
-```python
+```bash
 WEIGHT1=1
 WEIGHT2=9
 
@@ -113,7 +113,7 @@ train.py -data DATADIR/Preprocessed \
 
 A reaction can be predicted after tokenization using the following command:
 
-```python
+```bash
 translate.py -model model_uspto_ENZR_multitask.pt \
 	-src DATASET/src_test.txt \
 	-output predictions.txt \
@@ -126,7 +126,7 @@ translate.py -model model_uspto_ENZR_multitask.pt \
 
 ### Enzymatic Transformer:
 
-```python
+```bash
 @article{kreutter_predicting_2020,
 	title = {Predicting {Enzymatic} {Reactions} with a {Molecular} {Transformer}},
 	author = {Kreutter, David and Schwaller, Philippe and Reymond, Jean-Louis},
@@ -147,7 +147,7 @@ If you reuse this code please also cite the underlying code framework:
 
 [OpenNMT technical report](https://www.aclweb.org/anthology/P17-4012/)
 
-```python
+```bash
 @inproceedings{opennmt,
   author    = {Guillaume Klein and
                Yoon Kim and
@@ -161,4 +161,11 @@ If you reuse this code please also cite the underlying code framework:
   doi       = {10.18653/v1/P17-4012}
 }
 ```
+
+
+
+
+
+
+
 
