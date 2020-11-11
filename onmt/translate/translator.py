@@ -20,9 +20,12 @@ from onmt.utils.alignment import extract_alignment, build_align_pharaoh
 from onmt.modules.copy_generator import collapse_copy_scores
 
 
-def build_translator(opt, report_score=True, logger=None, out_file=None):
+def build_translator(opt, report_score=True, logger=None, out_file=None, log_probs_out_file=None):
     if out_file is None:
         out_file = codecs.open(opt.output, 'w+', 'utf-8')
+        
+        if opt.log_probs:
+            log_probs_out_file = codecs.open(opt.output + '_log_probs', 'w+', 'utf-8')
 
     load_test_model = onmt.decoders.ensemble.load_test_model \
         if len(opt.models) > 1 else onmt.model_builder.load_test_model
@@ -39,7 +42,8 @@ def build_translator(opt, report_score=True, logger=None, out_file=None):
         out_file=out_file,
         report_align=opt.report_align,
         report_score=report_score,
-        logger=logger
+        logger=logger,
+        log_probs_out_file=log_probs_out_file
     )
     return translator
 
@@ -130,6 +134,7 @@ class Translator(object):
             copy_attn=False,
             global_scorer=None,
             out_file=None,
+            log_probs_out_file=None,
             report_align=False,
             report_score=True,
             logger=None,
@@ -184,6 +189,7 @@ class Translator(object):
             raise ValueError(
                 "Coverage penalty requires an attentional decoder.")
         self.out_file = out_file
+        self.log_probs_out_file = log_probs_out_file
         self.report_align = report_align
         self.report_score = report_score
         self.logger = logger
@@ -214,6 +220,7 @@ class Translator(object):
             out_file=None,
             report_align=False,
             report_score=True,
+            log_probs_out_file=None,
             logger=None):
         """Alternate constructor.
 
@@ -261,6 +268,7 @@ class Translator(object):
             copy_attn=model_opt.copy_attn,
             global_scorer=global_scorer,
             out_file=out_file,
+            log_probs_out_file=log_probs_out_file,
             report_align=report_align,
             report_score=report_score,
             logger=logger,
@@ -381,6 +389,11 @@ class Translator(object):
                 self.out_file.write('\n'.join(n_best_preds) + '\n')
                 self.out_file.flush()
 
+                 if self.log_probs_out_file is not None:
+                    self.log_probs_out_file.write(
+                        '\n'.join([str(t.item()) for t in trans.pred_scores[:self.n_best]]) + '\n')
+                    self.log_probs_out_file.flush()
+                    
                 if self.verbose:
                     sent_number = next(counter)
                     output = trans.log(sent_number)

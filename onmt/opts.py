@@ -713,6 +713,8 @@ def translate_opts(parser):
     group.add('--output', '-output', default='pred.txt',
               help="Path to output the predictions (each line will "
                    "be the decoded sequence")
+    group.add('-log_probs', action='store_true',
+              help="Save log probs of predictions, use -output + '_log_probs' ")
     group.add('--report_align', '-report_align', action='store_true',
               help="Report alignment for each translation.")
     group.add('--report_time', '-report_time', action='store_true',
