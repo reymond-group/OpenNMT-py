@@ -389,7 +389,7 @@ class Translator(object):
                 self.out_file.write('\n'.join(n_best_preds) + '\n')
                 self.out_file.flush()
 
-                 if self.log_probs_out_file is not None:
+                if self.log_probs_out_file is not None:
                     self.log_probs_out_file.write(
                         '\n'.join([str(t.item()) for t in trans.pred_scores[:self.n_best]]) + '\n')
                     self.log_probs_out_file.flush()
