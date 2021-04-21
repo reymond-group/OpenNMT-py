@@ -76,7 +76,7 @@ preprocess.py -train_ids ENZR ST_sep_aug \
 	-train_tgt DATADIR/tgt_train.txt $DATASET_TRANSFER/tgt-train.txt \
 	-valid_src DATADIR/src_val.txt -valid_tgt $DATASET_TRANSFER/multi_task /tgt_val.txt \
 	-save_data DATADIR/Preprocessed \-src_seq_length 3000 -tgt_seq_length 3000 \
-	-src_vocab_size 3000 -tgt_vocab_size 3000 \-share_vocab -lower
+	-src_vocab_size 8000 -tgt_vocab_size 8000 \-share_vocab -lower
 ```
 
 ### Step 3: Training of the model
