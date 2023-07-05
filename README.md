@@ -1,7 +1,7 @@
 # Enzymatic Transformer
 
 
-This repo complements the "[Predicting Enzymatic Reactions with a Molecular Transformer](https://chemrxiv.org/articles/preprint/Predicting_Enzymatic_Reactions_with_a_Molecular_Transformer/13161359/1)" publication
+This repo complements the "[Predicting Enzymatic Reactions with a Molecular Transformer](https://pubs.rsc.org/en/content/articlelanding/2021/SC/D1SC02362D)" publication
 
 ## Requirements
 
