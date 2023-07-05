@@ -275,7 +275,8 @@ class Translator(object):
 
     def _log(self, msg):
         if self.logger:
-            self.logger.info(msg)
+            #self.logger.info(msg)
+            pass
         else:
             print(msg)
 
@@ -402,7 +403,8 @@ class Translator(object):
                     sent_number = next(counter)
                     output = trans.log(sent_number)
                     if self.logger:
-                        self.logger.info(output)
+                        #self.logger.info(output)
+                        pass
                     else:
                         os.write(1, output.encode('utf-8'))
 
@@ -416,7 +418,8 @@ class Translator(object):
                         srcs = [str(item) for item in range(len(attns[0]))]
                     output = report_matrix(srcs, preds, attns)
                     if self.logger:
-                        self.logger.info(output)
+                        #self.logger.info(output)
+                        pass
                     else:
                         os.write(1, output.encode('utf-8'))
 
@@ -429,7 +432,8 @@ class Translator(object):
                         srcs = [str(item) for item in range(len(align[0]))]
                     output = report_matrix(srcs, tgts, align)
                     if self.logger:
-                        self.logger.info(output)
+                        #self.logger.info(output)
+                        pass
                     else:
                         os.write(1, output.encode('utf-8'))
 
