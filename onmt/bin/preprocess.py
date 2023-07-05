@@ -15,7 +15,9 @@ import onmt.inputters as inputters
 import onmt.opts as opts
 from onmt.utils.parse import ArgumentParser
 from onmt.inputters.inputter import _build_fields_vocab,\
-                                    _load_vocab
+                                    _load_vocab, \
+                                    old_style_vocab, \
+                                    load_old_vocab
 
 from functools import partial
 from multiprocessing import Pool
@@ -207,16 +209,27 @@ def build_save_dataset(corpus_type, fields, src_reader, tgt_reader,
 
     if corpus_type == "train":
         vocab_path = opt.save_data + '.vocab.pt'
+        new_fields = _build_fields_vocab(
+            fields, counters, opt.data_type,
+            opt.share_vocab, opt.vocab_size_multiple,
+            opt.src_vocab_size, opt.src_words_min_frequency,
+            opt.tgt_vocab_size, opt.tgt_words_min_frequency,
+            subword_prefix=opt.subword_prefix,
+            subword_prefix_is_joiner=opt.subword_prefix_is_joiner)
         if existing_fields is None:
-            fields = _build_fields_vocab(
-                fields, counters, opt.data_type,
-                opt.share_vocab, opt.vocab_size_multiple,
-                opt.src_vocab_size, opt.src_words_min_frequency,
-                opt.tgt_vocab_size, opt.tgt_words_min_frequency,
-                subword_prefix=opt.subword_prefix,
-                subword_prefix_is_joiner=opt.subword_prefix_is_joiner)
+            fields = new_fields
         else:
             fields = existing_fields
+
+        if old_style_vocab(fields):
+            fields = load_old_vocab(
+                fields, opt.data_type, dynamic_dict=opt.dynamic_dict)
+
+        # patch corpus_id
+        if fields.get("corpus_id", False):
+            fields["corpus_id"].vocab = new_fields["corpus_id"].vocab_cls(
+                counters["corpus_id"])
+
         torch.save(fields, vocab_path)
 
 
@@ -252,10 +265,17 @@ def preprocess(opt):
 
     src_nfeats = 0
     tgt_nfeats = 0
-    for src, tgt in zip(opt.train_src, opt.train_tgt):
-        src_nfeats += count_features(src) if opt.data_type == 'text' \
-            else 0
-        tgt_nfeats += count_features(tgt)  # tgt always text so far
+    src_nfeats = count_features(opt.train_src[0]) if opt.data_type == 'text' \
+        else 0
+    tgt_nfeats = count_features(opt.train_tgt[0])  # tgt always text so far
+    if len(opt.train_src) > 1 and opt.data_type == 'text':
+        for src, tgt in zip(opt.train_src[1:], opt.train_tgt[1:]):
+            assert src_nfeats == count_features(src),\
+                "%s seems to mismatch features of "\
+                "the other source datasets" % src
+            assert tgt_nfeats == count_features(tgt),\
+                "%s seems to mismatch features of "\
+                "the other target datasets" % tgt
     logger.info(" * number of source features: %d." % src_nfeats)
     logger.info(" * number of target features: %d." % tgt_nfeats)
 

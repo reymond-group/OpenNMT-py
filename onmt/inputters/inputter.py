@@ -189,6 +189,13 @@ def get_fields(
     return fields
 
 
+def patch_fields(opt, fields):
+    dvocab = torch.load(opt.data + '.vocab.pt')
+    maybe_cid_field = dvocab.get('corpus_id', None)
+    if maybe_cid_field is not None:
+        fields.update({'corpus_id': maybe_cid_field})
+
+
 def load_old_vocab(vocab, data_type="text", dynamic_dict=False):
     """Update a legacy vocab/field format.
 
@@ -709,15 +716,21 @@ class MultipleDatasetIterator(object):
                  opt):
         self.index = -1
         self.iterables = []
-        for shard in train_shards:
-            self.iterables.append(
-                build_dataset_iter(shard, fields, opt, multi=True))
+        self.weights = []
+        for shard, weight in zip(train_shards, opt.data_weights):
+            if weight > 0:
+                self.iterables.append(
+                    build_dataset_iter(shard, fields, opt, multi=True))
+                self.weights.append(weight)
         self.init_iterators = True
-        self.weights = opt.data_weights
+        # self.weights = opt.data_weights
         self.batch_size = opt.batch_size
         self.batch_size_fn = max_tok_len \
             if opt.batch_type == "tokens" else None
-        self.batch_size_multiple = 8 if opt.model_dtype == "fp16" else 1
+        if opt.batch_size_multiple is not None:
+            self.batch_size_multiple = opt.batch_size_multiple
+        else:
+            self.batch_size_multiple = 8 if opt.model_dtype == "fp16" else 1
         self.device = device
         # Temporarily load one shard to retrieve sort_key for data_type
         temp_dataset = torch.load(self.iterables[0]._paths[0])
